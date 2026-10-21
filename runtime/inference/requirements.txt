@@ -1,0 +1,9 @@
+torch>=2.10.0
+transformers
+tokenizers
+safetensors>=0.7.0
+numpy
+sympy
+Pillow
+tilelang==0.1.12
+tqdm

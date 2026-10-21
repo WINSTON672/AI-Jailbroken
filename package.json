@@ -1,0 +1,56 @@
+{
+  "name": "deepseek-desk",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Local DeepSeek chat, web research and workspace assistant",
+  "main": "app/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "build:win": "node scripts/prepare-source.cjs && electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0"
+  },
+  "productName": "DeepSeek Desk",
+  "author": "Meigao",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "cheerio": "1.1.2"
+  },
+  "build": {
+    "appId": "school.meigao.deepseekdesk",
+    "productName": "DeepSeek Desk",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "build-source",
+        "to": "editable-source"
+      },
+      {
+        "from": "runtime",
+        "to": "runtime"
+      }
+    ],
+    "publish": null
+  }
+}
