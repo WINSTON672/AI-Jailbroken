@@ -10,7 +10,7 @@ permissions:
   contents: write
 concurrency:
   group: desktop-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build:
     strategy:

@@ -35,7 +35,8 @@
       "target": [
         "nsis"
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "artifactName": "DeepSeek-Desk-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
