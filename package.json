@@ -7,7 +7,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
-    "build:win": "node scripts/prepare-source.cjs && electron-builder --win nsis --x64 --publish never"
+    "build:win": "node scripts/prepare-source.cjs && electron-builder --win nsis --x64 --publish never",
+    "build:mac": "node scripts/prepare-source.cjs && electron-builder --mac dmg --publish never"
   },
   "devDependencies": {
     "electron": "45.0.0",
@@ -51,6 +52,12 @@
         "to": "runtime"
       }
     ],
-    "publish": null
+    "publish": null,
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "artifactName": "DeepSeek-Desk-${version}-mac-${arch}.${ext}"
+    }
   }
 }
