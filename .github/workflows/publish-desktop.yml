@@ -1,0 +1,72 @@
+name: Publish desktop version
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - .github/workflows/publish-desktop.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            arch: x64
+          - os: macos-latest
+            target: mac
+            arch: arm64
+          - os: macos-latest
+            target: mac
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:${{ matrix.target }} -- --${{ matrix.arch }}
+      - name: Verify Windows update manifest
+        if: matrix.target == 'win'
+        shell: pwsh
+        run: |
+          if (!(Test-Path dist/latest.yml)) { throw 'Missing updater manifest' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.target }}-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
+            dist/*.dmg
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Publish version and updater feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          cd installers
+          sha256sum * > SHA256SUMS.txt
+          gh release create "deepseek-desk-v$VERSION" ./* --target ${{ github.sha }} --title "DeepSeek Jailbroken App $VERSION" --latest --notes "Desktop app with update checks on launch and every six hours. Windows: download updates inside the app, then choose Install & restart. Mac: update notice links to the new DMG. Includes improved WSL2 setup status and Open Ubuntu control. Choose the EXE for Windows, mac-arm64.dmg for Apple Silicon, or mac-x64.dmg for Intel. Experimental, unsigned builds. Model weights are not bundled. Exact 1017 automatic model setup requires Windows/WSL2/NVIDIA and very large memory/storage capacity; Mac uses a separately running compatible local model server. Automated tests passed; interactive WSL installation, Windows upgrade installation and full model inference remain unverified."

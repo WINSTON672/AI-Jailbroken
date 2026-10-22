@@ -1,6 +1,6 @@
 {
   "name": "deepseek-desk",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Local DeepSeek chat, web research and workspace assistant",
   "main": "app/main.cjs",
@@ -18,7 +18,8 @@
   "author": "Meigao",
   "license": "UNLICENSED",
   "dependencies": {
-    "cheerio": "1.1.2"
+    "cheerio": "1.1.2",
+    "electron-updater": "6.8.9"
   },
   "build": {
     "appId": "school.meigao.deepseekdesk",
@@ -52,7 +53,10 @@
         "to": "runtime"
       }
     ],
-    "publish": null,
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/WINSTON672/deepseek-desk/releases/latest/download"
+    },
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity",

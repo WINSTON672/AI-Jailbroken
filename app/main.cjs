@@ -5,7 +5,7 @@ const {Workspace}=require('./workspace.cjs'),{runAgent}=require('./agent.cjs'),{
 if(!app.isPackaged && process.env.DEEPSEEK_TEST_DATA)app.setPath('userData',process.env.DEEPSEEK_TEST_DATA);
 let win,workspace=null,active=null,terminal=null,settings={base:'http://127.0.0.1:11434/v1',model:'',tools:true,apiKey:'',searchKey:''},tasks=[],data;
 const {Runtime,MODEL}=require('./runtime.cjs');
-let runtime;
+let runtime,updates;
 const approvals=new Map();
 const emit=e=>{if(win&&!win.isDestroyed())win.webContents.send('event',e);};
 const saveTasks=()=>{const f=path.join(data,'tasks.json');fs.writeFileSync(f+'.tmp',JSON.stringify(tasks),{mode:0o600});fs.renameSync(f+'.tmp',f);};
@@ -22,6 +22,13 @@ app.whenReady().then(()=>{
  win=new BrowserWindow({width:1450,height:930,minWidth:980,minHeight:650,title:'DeepSeek Desk',backgroundColor:'#101214',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
  win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());win.webContents.session.setPermissionRequestHandler((_w,_p,cb)=>cb(false));win.loadFile(path.join(__dirname,'index.html'));
  const defaultRoot=path.join(app.getPath('documents'),'DeepSeek Desk Workspace');fs.mkdirSync(defaultRoot,{recursive:true});setWorkspace(defaultRoot);
+ const {Updates}=require('./updates.cjs');
+ updates=new Updates({version:app.getVersion(),platform:process.platform,packaged:app.isPackaged,emit,updater:process.platform==='win32'?require('electron-updater').autoUpdater:null,openExternal:u=>shell.openExternal(u)});
+ updates.start();
+ bind('updateState',()=>updates.state);
+ bind('updateCheck',()=>updates.check());
+ bind('updateDownload',()=>updates.download());
+ bind('updateInstall',()=>{if(active||terminal||runtime.child||runtime.wsl.busy)throw Error('Stop the task, command, model or WSL setup before restarting.');updates.install();return true;});
  bind('init',()=>({settings:publicSettings(),tasks:tasks.map(({protocol,...t})=>t),platform:process.platform,workspace:workspace?.root||null,runtime:runtime.snapshot()}));
  bind('chooseWorkspace',async()=>{const r=await dialog.showOpenDialog(win,{properties:['openDirectory']});if(r.canceled)return null;return setWorkspace(r.filePaths[0]);});
  bind('appSource',()=>{const dest=path.join(app.getPath('documents'),'DeepSeek Desk Source');if(!fs.existsSync(dest)){fs.mkdirSync(dest,{recursive:true});if(app.isPackaged)fs.cpSync(path.join(process.resourcesPath,'editable-source'),dest,{recursive:true});else{fs.cpSync(path.join(__dirname),path.join(dest,'app'),{recursive:true});fs.copyFileSync(path.join(app.getAppPath(),'package.json'),path.join(dest,'package.json'));}}return setWorkspace(dest);});
@@ -48,6 +55,6 @@ app.whenReady().then(()=>{
  bind('openLink',u=>{const x=new URL(u);if(!['https:','http:'].includes(x.protocol)||x.username||x.password)throw Error('Use an ordinary web URL.');return shell.openExternal(x.href);});
  bind('revealData',()=>shell.openPath(data));
  if(settings.autoStart1017){settings.apiKey=runtime.token;runtime.start('start').catch(e=>runtime.update(e.message));}
- let exiting=false;app.on('before-quit',e=>{active?.abort();terminal?.abort();if(runtime.child&&!exiting){e.preventDefault();exiting=true;runtime.stop().finally(()=>app.quit());}});
+ let exiting=false;app.on('before-quit',e=>{updates?.stop();active?.abort();terminal?.abort();if(runtime.child&&!exiting){e.preventDefault();exiting=true;runtime.stop().finally(()=>app.quit());}});
 });
 app.on('window-all-closed',()=>app.quit());
