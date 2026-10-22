@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "id": "echo_example",
+  "name": "Echo example",
+  "description": "A starter plugin that echoes the input after command approval.",
+  "tools": [
+    {
+      "name": "echo",
+      "description": "Echo a short text string to test plugin execution.",
+      "commands": {
+        "win32": "Write-Output",
+        "darwin": "printf '%s\\n'"
+      }
+    }
+  ]
+}

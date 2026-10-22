@@ -3,3 +3,5 @@ dist/
 *.log
 
 build-source/
+
+app/editor-bundle.js

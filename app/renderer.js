@@ -10,7 +10,7 @@ function message(item){$('messages').querySelector('.welcome')?.remove();const d
 function renderMessages(){ $('messages').replaceChildren();$('title').textContent=task?.title||'Your local DeepSeek workspace';if(!task?.items.length){const d=document.createElement('div');d.className='welcome';const h=document.createElement('h1');h.textContent='What would you like to do?';const p=document.createElement('p');p.textContent='Describe a change. Your model can inspect this workspace and propose edits for your review.';d.append(h,p);$('messages').append(d)}else task.items.forEach(message);}
 function discard(){return !dirty||confirm('Discard unsaved editor changes?')}
 function applyWorkspace(w){if(!w)return;root=w.root;$('root').textContent=root;current=null;dirty=false;$('editor').value='';$('filename').textContent='EDITOR';renderFiles(w.files)}
-function renderFiles(files){$('files').replaceChildren();for(const f of files){const name=typeof f==='string'?f:f.path;const b=document.createElement('button');b.textContent=name;b.title=name;b.onclick=safe(async()=>{if(!discard())return;current=await api.readFile(name);dirty=false;$('editor').value=current.text;$('filename').textContent=name});$('files').append(b)}}
+function renderFiles(files){$('files').replaceChildren();for(const f of files){const name=typeof f==='string'?f:f.path;const b=document.createElement('button');b.textContent=name;b.title=name;b.onclick=safe(async()=>{if(!discard())return;if(/\.pdf$/i.test(name)){const pdf=await api.pdfRead(name);$('documentTitle').textContent=name;$('documentText').textContent=pdf.text+'\n\n'+pdf.note;$('documentDialog').showModal();return;}current=await api.readFile(name);window.deskEditor.file(name);dirty=false;$('editor').value=current.text;$('filename').textContent=name});$('files').append(b)}}
 async function refresh(){if(root)renderFiles(await api.files())}
 async function newTask(title){task=await api.newTask(title);tasks.push(task);renderTasks();renderMessages()}
 click('open',async()=>{if(!discard())return;const w=await api.chooseWorkspace();if(w){applyWorkspace(w);task=null;renderTasks();renderMessages()}});
@@ -48,3 +48,15 @@ click('updatesClose',()=>$('updatesDialog').close());
 click('updateCheck',async()=>showUpdate(await api.updateCheck()));
 click('updateDownload',async()=>showUpdate(await api.updateDownload()));
 click('updateInstall',async()=>{if(dirty)throw Error('Save your edited file before restarting.');if(busy)throw Error('Stop the current task before restarting.');if(confirm('Install the downloaded update and restart DeepSeek Desk?'))await api.updateInstall();});
+
+let extensionState;
+function applyExtensions(s){extensionState=s;window.deskEditor.preferences(s);$('editorTheme').value=s.theme;$('editorAutocomplete').checked=s.autocomplete;$('extensionList').replaceChildren();for(const x of [...s.builtins.map(b=>({...b,enabled:s.enabled[b.id],builtin:true})),...s.plugins]){const row=document.createElement('div');row.className='extensionRow';const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.checked=x.enabled;check.onchange=safe(async()=>{try{applyExtensions(await api.extensionsToggle({id:x.id,enabled:check.checked}));}catch(e){check.checked=!check.checked;throw e;}});label.append(check,document.createTextNode(' '+x.name));const desc=document.createElement('p');desc.textContent=x.description;row.append(label,desc);if(!x.builtin){const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=safe(async()=>applyExtensions(await api.extensionsRemove(x.id)));row.append(remove);} $('extensionList').append(row);}}
+click('extensionsButton',async()=>{applyExtensions(await api.extensionsList());$('extensionsDialog').showModal();});
+click('extensionsClose',()=>$('extensionsDialog').close());
+click('extensionImport',async()=>applyExtensions(await api.extensionsImport()));
+$('editorTheme').onchange=safe(async()=>applyExtensions(await api.extensionsPreferences({theme:$('editorTheme').value})));
+$('editorAutocomplete').onchange=safe(async()=>applyExtensions(await api.extensionsPreferences({autocomplete:$('editorAutocomplete').checked})));
+click('formatJson',()=>{if(!current||!current.path.endsWith('.json'))throw Error('Open a JSON file first.');$('editor').value=JSON.stringify(JSON.parse($('editor').value),null,2)+'\n';dirty=true;$('filename').textContent=current.path+' •';});
+click('gitButton',async()=>{const r=await api.gitRead('status');$('documentTitle').textContent='Git status';$('documentText').textContent=r.text||'Working tree is clean.';$('documentDialog').showModal();});
+click('documentClose',()=>$('documentDialog').close());
+safe(async()=>applyExtensions(await api.extensionsList()))();

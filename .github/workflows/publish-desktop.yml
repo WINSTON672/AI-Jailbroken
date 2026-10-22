@@ -69,4 +69,4 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           cd installers
           sha256sum * > SHA256SUMS.txt
-          gh release create "deepseek-desk-v$VERSION" ./* --target ${{ github.sha }} --title "DeepSeek Jailbroken App $VERSION" --latest --notes "Desktop app with update checks on launch and every six hours. Windows: download updates inside the app, then choose Install & restart. Mac: update notice links to the new DMG. Includes improved WSL2 setup status and Open Ubuntu control. Choose the EXE for Windows, mac-arm64.dmg for Apple Silicon, or mac-x64.dmg for Intel. Experimental, unsigned builds. Model weights are not bundled. Exact 1017 automatic model setup requires Windows/WSL2/NVIDIA and very large memory/storage capacity; Mac uses a separately running compatible local model server. Automated tests passed; interactive WSL installation, Windows upgrade installation and full model inference remain unverified."
+          gh release create "deepseek-desk-v$VERSION" ./* --target ${{ github.sha }} --title "DeepSeek Jailbroken App $VERSION" --latest --notes-file ../RELEASE-NOTES.txt

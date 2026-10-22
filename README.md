@@ -12,6 +12,14 @@ Desktop chat, web research, workspace files and reviewed commands, powered by a 
 
 Installers are unsigned. On Mac, open the DMG and drag the app into Applications. The installed app is named **DeepSeek Desk**.
 
+## Extensions and editor
+
+Open **Extensions** in the sidebar to toggle Web research, Terminal, Git tools and PDF reader, or install a custom tool plugin. Git must be installed separately. PDF extraction reads text from workspace files; it does not OCR scanned pages.
+
+The editor includes line numbers, syntax highlighting, bracket matching and completion for supported languages, with dark/light/midnight themes and JSON formatting. Completion is language-based, not model-powered.
+
+Custom plugins use this app's JSON format, not VS Code VSIX. Start with [echo-example.json](extensions/echo-example.json) and [plugin instructions](extensions/README.txt). Every AI-triggered plugin command requires approval and runs with normal user permissions.
+
 ## Updates
 
 Install version 0.3.2 or later once to get the updater. The app checks GitHub on launch and every six hours. Use **Check for updates** at any time.

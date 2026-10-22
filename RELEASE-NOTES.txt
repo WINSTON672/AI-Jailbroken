@@ -1,0 +1,10 @@
+Extensions and editor update
+
+- Extensions manager: enable/disable Web research, Terminal, Git tools and PDF reader.
+- Git: repository status UI plus model tools for log, diffs and staged changes; requires Git.
+- PDFs: text extraction for workspace PDFs, up to 30 pages / 24,000 characters; no OCR.
+- Editor: syntax highlighting, line numbers, bracket matching, language completion, JSON formatting, dark/light/midnight themes.
+- Install custom command-tool plugins from JSON, with per-call command approval. See extensions/echo-example.json in the source. VS Code extensions are not compatible.
+- Existing updater and Try anyway resource override remain available.
+
+Choose EXE for Windows, mac-arm64.dmg for Apple Silicon, or mac-x64.dmg for Intel. These are experimental unsigned builds. Model weights are not bundled. Exact 1017 automatic setup remains Windows/WSL2/NVIDIA-only; Mac requires a separately running compatible local model server. Windows upgrade installation and full model inference remain unverified.
