@@ -1,3 +1,6 @@
+# IMPORTANT
+THIS MODEL IS NOT AN API SERVICE, THIS WILL BE RAN LOCALLY ON YOUR DEVICE, IF YOU DO NOT WANT TO RISK YOUR HARDWARE DO NOT DOWNLOAD
+
 # DeepSeek Jailbroken App
 
 Desktop chat, web research, workspace files and reviewed commands, powered by a separately running local model.
