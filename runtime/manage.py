@@ -25,25 +25,31 @@ def report():
         except Exception: ready=False
     disk=shutil.disk_usage(HOME).free
     reasons=[]
+    warnings=[]
     if not gpus: reasons.append('NVIDIA GPUs are not visible to WSL. The exact reference runtime requires CUDA.')
-    elif sum(g[1] for g in gpus)*1024**2 < WEIGHT_BYTES*1.1: reasons.append('This reference runtime needs about 523 GiB of free aggregate GPU memory as a conservative setup estimate. Detected %.1f GiB.'%(sum(g[1] for g in gpus)/1024))
+    elif sum(g[1] for g in gpus)*1024**2 < WEIGHT_BYTES*1.1: warnings.append('This reference runtime needs about 523 GiB of free aggregate GPU memory as a conservative setup estimate. Detected %.1f GiB.'%(sum(g[1] for g in gpus)/1024))
     if gpus and (384%len(gpus) or 128%len(gpus) or 64%len(gpus)): reasons.append('Visible GPU count does not divide the model tensor-parallel dimensions.')
     if not ready:
-        if disk<WEIGHT_BYTES*2.2: reasons.append('Fresh setup needs approximately 1.13 TB free disk for original and converted weights plus working space.')
-        if mem<WEIGHT_BYTES*1.2: reasons.append('The upstream converter retains tensors in RAM; this setup requires approximately 612 GB available system RAM before conversion.')
-    return {'model':REPO,'revision':REV,'gpu_count':len(gpus),'free_gpu_gib':sum(g[1] for g in gpus)/1024,'available_ram_gib':round(mem/1024**3,1),'free_disk_gib':round(disk/1024**3,1),'converted':ready,'blockers':reasons,'note':'Conservative reference-runtime estimates, not universal hardware requirements. No CPU offload or smaller replacement is implemented.'}
+        if disk<WEIGHT_BYTES*2.2: warnings.append('Fresh setup needs approximately 1.13 TB free disk for original and converted weights plus working space.')
+        if mem<WEIGHT_BYTES*1.2: warnings.append('The upstream converter retains tensors in RAM; this setup requires approximately 612 GB available system RAM before conversion.')
+    return {'model':REPO,'revision':REV,'gpu_count':len(gpus),'free_gpu_gib':sum(g[1] for g in gpus)/1024,'available_ram_gib':round(mem/1024**3,1),'free_disk_gib':round(disk/1024**3,1),'converted':ready,'blockers':reasons,'warnings':warnings,'note':'Conservative reference-runtime estimates, not universal hardware requirements. No CPU offload or smaller replacement is implemented.'}
 
 def run(args): subprocess.run([str(x) for x in args],check=True)
 def event(message): print(json.dumps({'status':message}),flush=True)
 
+def enforce_report(r,try_anyway=False):
+    if r['blockers']: raise SystemExit('Runtime unavailable: '+' '.join(r['blockers']))
+    if r.get('warnings') and not try_anyway: raise SystemExit('Resource estimates exceeded. Enable Try anyway to proceed: '+' '.join(r['warnings']))
+
 def main():
-    p=argparse.ArgumentParser();p.add_argument('action',choices=['check','setup','start']);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('action',choices=['check','setup','start']);p.add_argument('--try-anyway',action='store_true');a=p.parse_args()
     if a.action!='check':
         if os.getsid(0)!=os.getpid(): os.setsid()
         print(json.dumps({'runtime_pid':os.getpid()}),flush=True)
     r=report();print(json.dumps(r),flush=True)
     if a.action=='check': return
-    if r['blockers']: raise SystemExit('Setup blocked: '+' '.join(r['blockers']))
+    enforce_report(r,a.try_anyway)
+    if r['warnings']: event('Resource estimates: '+' '.join(r['warnings']))
     py=HOME/'venv/bin/python'
     if a.action=='setup' and not r['converted']:
         event('Creating isolated Python runtime')

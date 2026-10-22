@@ -16,17 +16,18 @@ class Runtime{
  async check(){if(this.child)throw Error('Stop the model before checking setup.');const dir=await this.locate();const out=await exec('wsl.exe',['-d',this.distro,'--exec','python3',dir+'/manage.py','check']);return JSON.parse(out.trim().split('\n').at(-1));}
  async installWSL(){if(this.child)throw Error('Stop the model before installing WSL.');const message=await this.wsl.install(text=>this.update(text));this.update(message);return message;}
  async openUbuntu(){return this.wsl.openUbuntu();}
- async start(action,hfToken=''){
+ async start(action,hfToken='',tryAnyway=false){
   if(this.child)throw Error('The runtime is already running or setting up.');
   if(!['setup','start'].includes(action))throw Error('Invalid runtime action');
   const dir=await this.locate();const check=await this.check();
   if(check.blockers.length)throw Error(check.blockers.join('\n'));
+  if(check.warnings?.length&&!tryAnyway)throw Error(check.warnings.join('\n')+'\nEnable Try anyway to attempt setup or launch.');
   if(action==='setup'){
    this.update('Preparing Python in Ubuntu…');
    await exec('wsl.exe',['-d',this.distro,'-u','root','--exec','sh','-c','apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv python3-pip build-essential'],{timeout:600000,maxBuffer:1000000});
   }
   const env={...process.env,DEEPSEEK_DESK_TOKEN:this.token,WSLENV:'DEEPSEEK_DESK_TOKEN:HF_TOKEN',HF_TOKEN:hfToken};
-  this.child=spawn('wsl.exe',['-d',this.distro,'--exec','python3','-u',dir+'/manage.py',action],{windowsHide:true,env,stdio:['ignore','pipe','pipe']});
+  this.child=spawn('wsl.exe',['-d',this.distro,'--exec','python3','-u',dir+'/manage.py',action,...(tryAnyway?['--try-anyway']:[])],{windowsHide:true,env,stdio:['ignore','pipe','pipe']});
   this.ready=false;this.update(action==='setup'?'Starting exact 1017 setup…':'Loading exact 1017…');
   let pending='';
   this.child.stdout.on('data',b=>{pending+=b.toString();if(pending.length>200000)pending=pending.slice(-200000);let i;while((i=pending.indexOf('\n'))>=0){const line=pending.slice(0,i);pending=pending.slice(i+1);try{const d=JSON.parse(line);if(Number.isInteger(d.runtime_pid)&&d.runtime_pid>1)this.group=d.runtime_pid;if(d.status)this.update(d.status);if(d.ready===true&&d.model===MODEL){this.ready=true;this.update('Exact 1017 is ready');}}catch{}this.emit({type:'runtimeLog',text:(line+'\n').replaceAll(hfToken||'\u0000','[redacted]')});}});
