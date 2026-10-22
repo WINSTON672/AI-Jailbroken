@@ -27,6 +27,7 @@ app.whenReady().then(()=>{
  bind('appSource',()=>{const dest=path.join(app.getPath('documents'),'DeepSeek Desk Source');if(!fs.existsSync(dest)){fs.mkdirSync(dest,{recursive:true});if(app.isPackaged)fs.cpSync(path.join(process.resourcesPath,'editable-source'),dest,{recursive:true});else{fs.cpSync(path.join(__dirname),path.join(dest,'app'),{recursive:true});fs.copyFileSync(path.join(app.getAppPath(),'package.json'),path.join(dest,'package.json'));}}return setWorkspace(dest);});
  bind('runtimeCheck',()=>runtime.check());
  bind('runtimeInstallWSL',()=>runtime.installWSL());
+ bind('runtimeOpenUbuntu',()=>runtime.openUbuntu());
  bind('runtimeStart',async({action,hfToken})=>{if(active||terminal)throw Error('Stop the current task first.');const r=await runtime.start(action,String(hfToken||''));settings.base='http://127.0.0.1:11436/v1';settings.model=MODEL;settings.apiKey=runtime.token;settings.autoStart1017=true;const stored={base:settings.base,model:MODEL,tools:settings.tools,autoStart1017:true};if(safeStorage.isEncryptionAvailable()&&settings.searchKey)stored.searchKey=safeStorage.encryptString(settings.searchKey).toString('base64');fs.writeFileSync(path.join(data,'settings.json'),JSON.stringify(stored),{mode:0o600});return {runtime:r,settings:publicSettings()};});
  bind('runtimeStop',()=>runtime.stop());
  bind('discover',()=>discoverModels());

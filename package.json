@@ -1,6 +1,6 @@
 {
   "name": "deepseek-desk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Local DeepSeek chat, web research and workspace assistant",
   "main": "app/main.cjs",

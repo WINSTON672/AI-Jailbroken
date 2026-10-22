@@ -1,20 +1,21 @@
 const {spawn,execFile}=require('node:child_process');
 const path=require('node:path'),crypto=require('node:crypto');
+const {WslSetup}=require('./wsl.cjs');
 const MODEL='dealignai/DeepSeek-V4.1-Flash-1017-UNCENSORED-FP8';
 const exec=(file,args,options={})=>new Promise((resolve,reject)=>execFile(file,args,{windowsHide:true,timeout:30000,maxBuffer:200000,...options},(e,out,err)=>e?reject(Error((err||e.message).slice(-1500))):resolve(out)));
 class Runtime{
- constructor(source,emit){this.source=source;this.emit=emit;this.child=null;this.group=null;this.distro=null;this.token=crypto.randomBytes(32).toString('hex');this.ready=false;this.status='Not started';}
+ constructor(source,emit){this.wsl=new WslSetup();this.source=source;this.emit=emit;this.child=null;this.group=null;this.distro=null;this.token=crypto.randomBytes(32).toString('hex');this.ready=false;this.status='Not started';}
  snapshot(){return {running:!!this.child,ready:this.ready,status:this.status,model:MODEL};}
  update(text){this.status=text;this.emit({type:'runtime',...this.snapshot()});}
  async locate(){
-  if(process.platform!=='win32')throw Error('Automatic 1017 setup targets Windows with WSL2 and NVIDIA GPUs. This Mac cannot run its CUDA reference engine.');
-  const names=(await exec('wsl.exe',['--list','--quiet'],{encoding:'utf16le'})).replace(/\0/g,'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  this.distro=names.find(x=>/^Ubuntu(?:-|$)/i.test(x));
-  if(!this.distro)throw Error('Ubuntu on WSL2 is not installed. Click Install WSL, finish Windows setup/reboot if requested, then retry.');
+  const status=await this.wsl.inspect();
+  if(!status.ready)throw Error(status.message);
+  this.distro=status.distro;
   return (await exec('wsl.exe',['-d',this.distro,'--exec','wslpath','-u',this.source])).trim();
  }
  async check(){if(this.child)throw Error('Stop the model before checking setup.');const dir=await this.locate();const out=await exec('wsl.exe',['-d',this.distro,'--exec','python3',dir+'/manage.py','check']);return JSON.parse(out.trim().split('\n').at(-1));}
- async installWSL(){if(process.platform!=='win32')throw Error('Run this on Windows.');await exec('powershell.exe',['-NoProfile','-Command',"Start-Process wsl.exe -Verb RunAs -ArgumentList '--install','--distribution','Ubuntu','--no-launch'" ]);return 'Windows setup opened. Complete its prompts and restart Windows if requested. Ubuntu may require its first-run account setup.';}
+ async installWSL(){if(this.child)throw Error('Stop the model before installing WSL.');const message=await this.wsl.install(text=>this.update(text));this.update(message);return message;}
+ async openUbuntu(){return this.wsl.openUbuntu();}
  async start(action,hfToken=''){
   if(this.child)throw Error('The runtime is already running or setting up.');
   if(!['setup','start'].includes(action))throw Error('Invalid runtime action');

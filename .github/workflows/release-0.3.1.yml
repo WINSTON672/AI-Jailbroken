@@ -1,0 +1,58 @@
+name: Desktop release 0.3.1
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release-0.3.1.yml]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            arch: x64
+            asset: '*.exe'
+          - os: macos-latest
+            target: mac
+            arch: arm64
+            asset: '*.dmg'
+          - os: macos-latest
+            target: mac
+            arch: x64
+            asset: '*.dmg'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:${{ matrix.target }} -- --${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.target }}-${{ matrix.arch }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd installers
+          sha256sum * > SHA256SUMS.txt
+          gh release create deepseek-desk-v0.3.1 ./* --target ${{ github.sha }} --title "DeepSeek Jailbroken App 0.3.1" --prerelease --notes "Improved Windows WSL2 setup: waits for installer completion, checks exit status, reports restart requirements, verifies Ubuntu uses WSL2 and can start, and provides an Open Ubuntu button for account setup. WSL buttons are disabled on Mac. Choose the EXE for Windows, mac-arm64.dmg for Apple Silicon, or mac-x64.dmg for Intel. Installers are unsigned. Model weights are not bundled. Exact 1017 automatic model setup requires Windows/WSL2/NVIDIA and very large memory/storage capacity; Mac uses a separately running compatible local model server. Automated tests passed; interactive Windows WSL installation and full model inference remain unverified."
